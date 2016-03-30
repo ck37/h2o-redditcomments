@@ -1,0 +1,5 @@
+*.yml
+subj.txt
+dat/
+*.swp
+*.pyc
