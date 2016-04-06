@@ -1,0 +1,17 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
+*.Rproj
+*.gz
+hw3/*cache
+hw3/figure
+*.sty
+*.bbl
+*.xml
+*.log
+*.csv
+*.zip
+*.RData
+*.sqlite

@@ -1,2 +1,6 @@
 data/*
 *.sqlite
+# CK ignores --
+.DS_Store
+.Rproj.user
+*.Rproj
