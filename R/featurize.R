@@ -23,6 +23,11 @@ data_processed = featurize(raw_data, downsample_pct = 0.01)
 # Save our results.
 save(data_processed, file="data/data-featurized.RData")
 
+# Can run this line to generate a CSV export if desired.
+if (F) {
+  write.csv(data_processed$data, file="exports/data-featurized.csv", row.names=F)
+}
+
 # Clean up.
 rm(raw_data)
 gc()
