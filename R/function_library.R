@@ -72,7 +72,33 @@ featurize = function(raw_data, downsample_pct = 1,
   # Integrate these features into a dataframe.
   feature_data = with(text_features, data.frame(dtm, bigrams, trigrams, raw_features))
 
-  # Add the new data to the original raw data and return.
+  if (principal_components > 0) {
+
+    # Restrict to the first X components.
+    cat("Restricting to first", principal_components, "principal components.\n")
+
+    # PCA transform the training data.
+    # May want to set scale=F
+    pca = prcomp(feature_data)
+
+    feature_data = pca$x[, 1:principal_components]
+
+    # Apply same transformation to the test data.
+    # test_data = predict(pca, test_data)[, 1:principal_components]
+  }
+
+  if (two_way) {
+    cat("Adding two-way interactions.\n")
+    int = two_way_interactions(feature_data)
+    feature_data = cbind(feature_data, int)
+    cat("Total features:", ncol(feature_data), "\n")
+
+    #int = two_way_interactions(test_data)
+    #test_data = cbind(test_data, int)
+  }
+
+
+  # Add the new data to the original raw Reddit db columns and return.
   final_data = cbind(raw_data, feature_data)
 
   results = list(data = final_data)
