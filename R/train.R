@@ -24,7 +24,7 @@ data$red_body = NULL
 # Specify the target column.
 y = "red_score"
 
-# Remove the missing values in our target variable.
+# Remove the observations with missing values in our target variable.
 data = data[!is.na(data[, y]), ]
 nrow(data)
 summary(data[, y], useNA="ifany")
@@ -48,7 +48,20 @@ summary(data[, y], exact_quantiles=T)
 
 # Divide into training and holdout.
 # TODO: fix this placeholder and actually divide up the dataframes.
-train = data
+splits = h2o.splitFrame(
+  data,         ##  splitting the H2O frame we read above
+  c(0.7),   ##  create splits of 70% and 30%;
+  seed=1234)    ##  setting a seed will ensure reproducible results (not R's seed)
+# If we used splits of less than 100%, h2o would allocate a third split to the remainder.
+
+train = h2o.assign(splits[[1]], "train.hex")
+## assign the first result the R variable train
+## and the H2O name train.hex
+#valid = h2o.assign(splits[[2]], "valid.hex")   ## R valid, H2O valid.hex
+holdout = h2o.assign(splits[[2]], "holdout.hex")     ## R test, H2O test.hex
+# Double-check dimensions.
+dim(train)
+dim(holdout)
 
 # Define parameters.
 
