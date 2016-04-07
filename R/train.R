@@ -16,26 +16,38 @@ h2o.init(nthreads = -1)
 h2o.removeAll()
 
 data = data_processed$data
+dim(data)
+
+# Remove comment content because it contains carriage returns and h2o can't handle it.
+data$red_body = NULL
 
 # Specify the target column.
 y = "red_score"
-# Review the distribution of the target variable.
-summary(data[, y], useNA="ifany")
-# Wow, this is a messed up distribution!
 
-# At least remove the missing values in our target variable.
-data = data[!is.na(y), ]
+# Remove the missing values in our target variable.
+data = data[!is.na(data[, y]), ]
+nrow(data)
 summary(data[, y], useNA="ifany")
 
+# Convert to a 1/0 indicator.
+data$red_score = as.numeric(data$red_score >= 2)
+table(data$red_score, useNA="ifany")
+
+# Save a backup of our R dataframe.
+r_data = data
 # Load data into h2o.
 data = as.h2o(data)
 # This is showing too many rows, but the correct number of columns. What's the deal?
 # TODO: figure this out.
 dim(data)
-head(data)
+# head(data)
+summary(data[, y])
+
+data[, y] = as.factor(data[, y])
+summary(data[, y], exact_quantiles=T)
 
 # Divide into training and holdout.
-# TODO fix this placeholder and actually divide up the dataframes.
+# TODO: fix this placeholder and actually divide up the dataframes.
 train = data
 
 # Define parameters.
@@ -52,7 +64,8 @@ x = setdiff(features, c(y))
 length(x)
 
 # Change to bernoulli if doing classification.
-distribution = "gaussian"
+#distribution = "gaussian"
+distribution = "bernoulli"
 
 # Fit models.
 
@@ -74,15 +87,23 @@ grid_search = h2o.grid(algorithm = "gbm",
 grid_search
 
 # Sort by ascending MSE.
-perf_table = h2o.getGrid(grid_id = "gbm_grid", sort_by = "mse", decreasing = F)
+#perf_table = h2o.getGrid(grid_id = "gbm_grid", sort_by = "mse", decreasing = F)
+perf_table = h2o.getGrid(grid_id = "gbm_grid", sort_by = "auc", decreasing = T)
 print(perf_table)
 
 # Extract the model with minimum CV-MSE.
 best_model = h2o.getModel(perf_table@model_ids[[1]])
 # Confirm the MSE.
-h2o.mse(best_model)
+#h2o.mse(best_model)
+h2o.auc(best_model)
+
+# Review variable importance.
+print.data.frame(h2o.varimp(best_model)[1:30, ])
+
 # What's the RMSE?
-sqrt(h2o.mse(best_model))
+if (distribution == "gaussian") {
+  sqrt(h2o.mse(best_model))
+}
 
 # Now that we can one model working, let's do SuperLearning.
 # Following http://learn.h2o.ai/content/tutorials/ensembles-stacking/index.html
@@ -99,11 +120,11 @@ learner = c("h2o.randomForest.wrapper",
 metalearner = "h2o.glm.wrapper"
 
 # TODO: convert this to fitting the models separately, so that we can try different stackers.
-fit <- h2o.ensemble(x = x, y = y,  training_frame = train,
-                    family = distribution,  learner = learner,
+fit_ens <- h2o.ensemble(x = x, y = y,  training_frame = train,
+                    family = "AUTO",  learner = learner,
                     metalearner = metalearner, cvControl = list(V = 5))
 # Review the results.
-fit$metafit
+fit_ens$metafit
 
 # Review performance
 # perf = h2o.ensemble_performance(fit, newdata = data, score_base_models = F)
@@ -117,12 +138,12 @@ h2o.glm_nn = function(..., non_negative = TRUE) {
 }
 metalearner = "h2o.glm_nn"
 
-fit2 = h2o.ensemble(x = x, y = y,  training_frame = train,
-                     family = distribution,  learner = learner,
+fit_ens2 = h2o.ensemble(x = x, y = y,  training_frame = train,
+                     family = "AUTO",  learner = learner,
                      metalearner = metalearner, cvControl = list(V = 5))
 
 # Review the model weights in the metalearner and training set performance.
-fit2$metafit
+fit_ens2$metafit
 
 # Review performance on holdout (or external cross-validation).
 # perf = h2o.ensemble_performance(fit, newdata = test, score_base_models = F)
