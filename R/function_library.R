@@ -26,7 +26,8 @@ load_libraries = function() {
 # Raw data is a Reddit dataframe with metadata and the comment as the $body column
 featurize = function(raw_data, downsample_pct = 1,
       sparsity_ngrams = c(0.99, 0.99, 0.99), principal_components = 0, two_way = F,
-      prune_training_features=T, remove_stopwords = T, stem = T, binarize = F) {
+      prune_training_features=T, remove_stopwords = T, stem = T, binarize = F,
+      include_bigrams = T, include_trigrams = T) {
   cat("Featurizing", prettyNum(nrow(raw_data), big.mark=","), "rows.\n")
 
   # Downsample the raw data if we want to speed up computation.
@@ -48,20 +49,32 @@ featurize = function(raw_data, downsample_pct = 1,
 
   # Convert corpuses into feature matrices.
   text_features$dtm = as.matrix(text_features$dtm)
-  text_features$bigrams = as.matrix(text_features$bigrams)
-  text_features$trigrams = as.matrix(text_features$trigrams)
+  if (include_bigrams) {
+    text_features$bigrams = as.matrix(text_features$bigrams)
+  }
+  if (include_trigrams) {
+    text_features$trigrams = as.matrix(text_features$trigrams)
+  }
 
   # Add prefixes to all feature names to ensure no collisions.
   colnames(raw_data) = paste0("red_", colnames(raw_data))
   colnames(text_features$raw_features) = paste0("raw_", colnames(text_features$raw_features))
   colnames(text_features$dtm) = paste0("gm1_", colnames(text_features$dtm))
-  colnames(text_features$bigrams) = paste0("gm2_", colnames(text_features$bigrams))
-  colnames(text_features$trigrams) = paste0("gm3_", colnames(text_features$trigrams))
+  if (include_bigrams) {
+    colnames(text_features$bigrams) = paste0("gm2_", colnames(text_features$bigrams))
+  }
+  if (include_trigrams) {
+    colnames(text_features$trigrams) = paste0("gm3_", colnames(text_features$trigrams))
+  }
 
   if (binarize) {
     text_features$dtm = binarize_dtm_matrix(text_features$dtm)
-    text_features$bigrams = binarize_dtm_matrix(text_features$bigrams)
-    text_features$trigrams = binarize_dtm_matrix(text_features$trigrams)
+    if (include_bigrams) {
+      text_features$bigrams = binarize_dtm_matrix(text_features$bigrams)
+    }
+    if (include_trigrams) {
+      text_features$trigrams = binarize_dtm_matrix(text_features$trigrams)
+    }
   }
 
   # Eliminate grams that are zero in the test data, to reduce the potential for overfitting.
@@ -70,7 +83,15 @@ featurize = function(raw_data, downsample_pct = 1,
   }
 
   # Integrate these features into a dataframe.
-  feature_data = with(text_features, data.frame(dtm, bigrams, trigrams, raw_features))
+  if (include_bigrams && include_trigrams) {
+    feature_data = with(text_features, data.frame(dtm, bigrams, trigrams, raw_features))
+  } else if (include_bigrams) {
+    feature_data = with(text_features, data.frame(dtm, bigrams, raw_features))
+  } else if (include_trigrams) {
+    feature_data = with(text_features, data.frame(dtm, trigrams, raw_features))
+  } else {
+    feature_data = with(text_features, data.frame(dtm, raw_features))
+  }
 
   if (principal_components > 0) {
 
@@ -110,12 +131,16 @@ featurize = function(raw_data, downsample_pct = 1,
 # If training_data is passed in, use that to restrict our feature set (for the test set).
 doc_feature_matrix = function(doc_corpus, stopwords = c(), prior_training_data = NULL,
                               sparsity_ngrams = c(0.98, 0.99, 0.99), squared_raw = F, remove_stopwords = T,
-                              stem=F, binarize=F) {
+                              stem=F, binarize=F, include_bigrams = T, include_trigrams = T) {
   if (is.null(prior_training_data)) {
     cat("N-gram sparsity:", paste0(sparsity_ngrams, collapse=", "), "\n")
     sparsity_unigram = sparsity_ngrams[1]
-    sparsity_bigram = sparsity_ngrams[2]
-    sparsity_trigram = sparsity_ngrams[3]
+    if (include_bigrams) {
+      sparsity_bigram = sparsity_ngrams[2]
+    }
+    if (include_trigrams) {
+      sparsity_trigram = sparsity_ngrams[3]
+    }
   }
 
   # Create features from the raw text.
@@ -193,26 +218,42 @@ doc_feature_matrix = function(doc_corpus, stopwords = c(), prior_training_data =
     cat("Unigrams created:", prettyNum(ncol(dtm), big.mark=","), "\n")
 
     # Create bigrams - should we do these before removing sparse terms and/or stopwords?
-    dtm_bigrams = DocumentTermMatrix(book, control = list(tokenize = BigramTokenizer))
-    # We have to removeSparseTerm before converting to a matrix because there are too many cells otherwise (> a billion).
-    # This is a loose restriction - bigram must be used in at least 1% of documents.
-    # TODO: may need to tweak this for prediction/verification data - don't want to remove training bigrams.
-    dtm_bigrams = removeSparseTerms(dtm_bigrams, sparse = sparsity_bigram)
-    cat("Bigrams created:", prettyNum(ncol(dtm_bigrams), big.mark=","), "\n")
+    if (include_bigrams) {
+      dtm_bigrams = DocumentTermMatrix(book, control = list(tokenize = BigramTokenizer))
+      # We have to removeSparseTerm before converting to a matrix because there are too many cells otherwise (> a billion).
+      # This is a loose restriction - bigram must be used in at least 1% of documents.
+      # TODO: may need to tweak this for prediction/verification data - don't want to remove training bigrams.
+      dtm_bigrams = removeSparseTerms(dtm_bigrams, sparse = sparsity_bigram)
+      cat("Bigrams created:", prettyNum(ncol(dtm_bigrams), big.mark=","), "\n")
+    }
 
     # Create trigrams
-    dtm_trigrams = DocumentTermMatrix(book, control = list(tokenize = TrigramTokenizer))
-    dtm_trigrams = removeSparseTerms(dtm_trigrams, sparse = sparsity_trigram)
-    cat("Trigrams created:", prettyNum(ncol(dtm_trigrams), big.mark=","), "\n")
+    if (include_trigrams) {
+      dtm_trigrams = DocumentTermMatrix(book, control = list(tokenize = TrigramTokenizer))
+      dtm_trigrams = removeSparseTerms(dtm_trigrams, sparse = sparsity_trigram)
+      cat("Trigrams created:", prettyNum(ncol(dtm_trigrams), big.mark=","), "\n")
+    }
 
   } else {
     # Restrict dictionary to the terms used in the training data.
     dtm = DocumentTermMatrix(book, control = list(dictionary = Terms(prior_training_data$dtm)))
-    dtm_bigrams = DocumentTermMatrix(book, control = list(tokenize = BigramTokenizer, dictionary=Terms(prior_training_data$bigrams)))
-    dtm_trigrams = DocumentTermMatrix(book, control = list(tokenize = TrigramTokenizer, dictionary=Terms(prior_training_data$trigrams)))
+    if (include_bigrams) {
+      dtm_bigrams = DocumentTermMatrix(book, control = list(tokenize = BigramTokenizer, dictionary=Terms(prior_training_data$bigrams)))
+    }
+    if (include_trigrams) {
+      dtm_trigrams = DocumentTermMatrix(book, control = list(tokenize = TrigramTokenizer, dictionary=Terms(prior_training_data$trigrams)))
+    }
   }
 
-  results = list(dtm = dtm, bigrams = dtm_bigrams, trigrams = dtm_trigrams, raw_features = raw_features)
+  if (include_bigrams && include_trigrams) {
+    results = list(dtm = dtm, bigrams = dtm_bigrams, trigrams = dtm_trigrams, raw_features = raw_features)
+  } else if (include_bigrams) {
+    results = list(dtm = dtm, bigrams = dtm_bigrams, raw_features = raw_features)
+  } else if (include_trigrams) {
+   results = list(dtm = dtm, trigrams = dtm_trigrams, raw_features = raw_features)
+  } else {
+   results = list(dtm = dtm, raw_features = raw_features)
+  }
   return(results)
 }
 
