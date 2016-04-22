@@ -44,7 +44,7 @@ featurize = function(raw_data, downsample_pct = 1,
 
   # Process an input dataframe with raw reddit data.
   text_features = doc_feature_matrix(text_corpus, load_stopwords(), sparsity_ngrams=sparsity_ngrams,
-              remove_stopwords=remove_stopwords, stem=stem, binarize=binarize)
+              remove_stopwords=remove_stopwords, stem=stem, binarize=binarize, include_bigrams=include_bigrams, include_trigrams=include_trigrams)
 
 
   # Convert corpuses into feature matrices.
