@@ -10,33 +10,49 @@ library(h2oEnsemble)  # This will load the `h2o` R package as well
 
 # Start an H2O cluster with nthreads = num cores on your machine
 # TODO: support multi-node parallel cluster ala Savio.
-h2o.init(nthreads = -1)
+h2o.init(nthreads = detectCores())
 
 # Clean slate - just in case the cluster was already running
 h2o.removeAll()
 
 data = data_processed$data
+dim(data)
+
+#Remove comment ontent because it contains carriage returns and h2o can't handle it.
+data$red_body = NULL
 
 # Specify the target column.
 y = "red_score"
-# Review the distribution of the target variable.
-summary(data[, y], useNA="ifany")
-# Wow, this is a messed up distribution!
 
 # At least remove the missing values in our target variable.
 data = data[!is.na(y), ]
+nrow(data)
 summary(data[, y], useNA="ifany")
+
+#Save a backup of our R dataframe.
+r_data = data
 
 # Load data into h2o.
 data = as.h2o(data)
+
 # This is showing too many rows, but the correct number of columns. What's the deal?
 # TODO: figure this out.
 dim(data)
-head(data)
+# head(data)
+summary(data[, y], exact_quantiles = T)
+
 
 # Divide into training and holdout.
 # TODO fix this placeholder and actually divide up the dataframes.
-train = data
+splits = h2o.splitFrame(
+  data,
+  c(0.7),
+  seed=1234)
+
+train = h2o.assign(splits[[1]], "train.hex")
+holdout = h2o.assign(splits[[2]], "holdout.hex")
+dim(train)
+dim(holdout)
 
 # Define parameters.
 
@@ -81,6 +97,8 @@ print(perf_table)
 best_model = h2o.getModel(perf_table@model_ids[[1]])
 # Confirm the MSE.
 h2o.mse(best_model)
+
+print.data.frame(h2o.varimp(best_model)[1:30, ])
 # What's the RMSE?
 sqrt(h2o.mse(best_model))
 
