@@ -20,6 +20,7 @@ load_libraries = function() {
     library(caret)     # For stratified cross-validation folds.
     library(eqs2lavaan) #  For covariance heatmap.
     #library(qdap)      # Not sure if we actually need this one.
+    library(RSQLite)
   })
 }
 
@@ -271,10 +272,16 @@ create_raw_features = function(corpus, punct_feature_pct = F) {
   # Run this processing outside of the loop to make it faster.
   corpus = tm_map(corpus, content_transformer(tolower))
 
-  # TODO: multicore, maybe via mcmapply? Trying it but it's not tested yet.
-  # This loop is incredibly slow, need to also consider more vectorization.
-  feature_matrix = sapply(corpus, FUN=function(book) {
-    #feature_matrix = parSapply(cl=conf$cluster, corpus, FUN=function(book) {
+  # Prepare cluster
+  cluster = makeCluster(detectCores())
+  clusterExport(cluster, c("stri_count", "annotate"))
+  clusterCall(cluster, function() library(stringr))
+  clusterCall(cluster, function() library(NLP))
+  clusterCall(cluster, function() library(openNLP))
+  clusterExport(cluster, c("remove_punc", "analyze_linguistics"))
+
+  # Run multicore
+  feature_matrix = parSapply(cl=cluster, corpus, FUN=function(book) {
     # Note: text is an array, where each element is a line in the original text.
     text = tolower(book$content)
 
@@ -337,7 +344,9 @@ create_raw_features = function(corpus, punct_feature_pct = F) {
     pos_unique_tags = length(unique(linguistics$pos_tags))
 
     # From http://www.surdeanu.info/mihai/teaching/ista555-fall13/readings/PennTreebankConstituents.html#Word
-    pos_tag_options = c('CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS', 'LS', 'MD', 'NN', 'NNS', 'NNP', 'NNPS', 'PDT', 'POS', 'PRP', 'PRP$', 'RB', 'RBR', 'RBS', 'RP', 'SYM', 'TO', 'UH', 'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ', 'WDT', 'WP', 'WP$', 'WRB')
+    pos_tag_options = c('CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS', 'LS', 'MD', 'NN', 'NNS', 'NNP',
+                        'NNPS', 'PDT', 'POS', 'PRP', 'PRP$', 'RB', 'RBR', 'RBS', 'RP', 'SYM', 'TO', 'UH', 'VB',
+                        'VBD', 'VBG', 'VBN', 'VBP', 'VBZ', 'WDT', 'WP', 'WP$', 'WRB')
 
     # Calculate the distribution of Parts of Speech in the text.
     pos_dist = rep(0, length(pos_tag_options))
@@ -417,9 +426,10 @@ create_raw_features = function(corpus, punct_feature_pct = F) {
       stopifnot(F)
     }
 
-    combined_features
-  }) # for the previous sapply version.
-  #}) # for the mclapply version.
+    return(combined_features)
+  })
+  stopCluster(cluster)
+
 
   # TODO: generate 2-way interactions.
 

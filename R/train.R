@@ -10,7 +10,7 @@ library(h2oEnsemble)  # This will load the `h2o` R package as well
 
 # Start an H2O cluster with nthreads = num cores on your machine
 # TODO: support multi-node parallel cluster ala Savio.
-h2o.init(nthreads = -1)
+h2o.init(nthreads=detectCores())
 
 # Clean slate - just in case the cluster was already running
 h2o.removeAll()
