@@ -99,7 +99,7 @@ grid_search = h2o.grid(algorithm = "gbm",
                        distribution=distribution,
                        x = x, y = y,  training_frame = train)
 #validation_frame = valid)
-# GOOD PARAMETERS: ntrees: 500, max_depth: 5, learn_rate: 0.2
+# GOOD PARAMETERS on gbm_grid_model_17: ntrees: 500, max_depth: 5, learn_rate: 0.2
 
 grid_search
 
@@ -132,8 +132,14 @@ if (distribution == "gaussian") {
 #learner <- c("h2o.glm.wrapper", "h2o.randomForest.wrapper",
 #             "h2o.gbm.wrapper", "h2o.deeplearning.wrapper")
 }
+#learner = c("h2o.randomForest.wrapper",
+#             "h2o.gbm.wrapper", "h2o.deeplearning.wrapper")
+# ignore the deeplearner
 learner = c("h2o.randomForest.wrapper",
-             "h2o.gbm.wrapper", "h2o.deeplearning.wrapper")
+             "h2o.gbm.wrapper")
+
+
+
 metalearner = "h2o.glm.wrapper"
 
 # TODO: convert this to fitting the models separately, so that we can try different stackers.

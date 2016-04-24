@@ -15,3 +15,5 @@ hw3/figure
 *.zip
 *.RData
 *.sqlite
+model/
+*.swp
