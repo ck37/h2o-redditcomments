@@ -83,6 +83,7 @@ distribution = "bernoulli"
 # Fit models.
 
 # GBM gridsearch.
+
 ntrees_opt = c(100, 200, 500)
 max_depth_opt = c(2, 3, 5)
 learn_rate_opt = c(0.1, 0.2)
@@ -98,6 +99,8 @@ grid_search = h2o.grid(algorithm = "gbm",
                        distribution=distribution,
                        x = x, y = y,  training_frame = train)
 #validation_frame = valid)
+# GOOD PARAMETERS: ntrees: 500, max_depth: 5, learn_rate: 0.2
+
 grid_search
 
 # Sort by ascending MSE.
@@ -136,7 +139,7 @@ metalearner = "h2o.glm.wrapper"
 # TODO: convert this to fitting the models separately, so that we can try different stackers.
 fit_ens <- h2o.ensemble(x = x, y = y,  training_frame = train,
                     family = "AUTO",  learner = learner,
-                    metalearner = metalearner, cvControl = list(V = 5), balance_classes=T)
+                    metalearner = metalearner, cvControl = list(V = 5),)
 # Review the results.
 fit_ens$metafit
 

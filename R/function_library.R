@@ -17,8 +17,8 @@ load_libraries = function() {
     library(openNLP)   # For sentence tokenization, part-of-speech tagging and named-entity recognition.
     library(stringi)   # For sentence feature engineering.
     library(stringr)   # For sentence feature engineering.
-    library(caret)     # For stratified cross-validation folds.
-    library(eqs2lavaan) #  For covariance heatmap.
+    #library(caret)     # For stratified cross-validation folds.
+    #library(eqs2lavaan) #  For covariance heatmap.
     #library(qdap)      # Not sure if we actually need this one.
     library(RSQLite)
   })
