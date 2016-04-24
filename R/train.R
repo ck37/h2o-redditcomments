@@ -91,6 +91,7 @@ hyper_params = list('ntrees' = ntrees_opt,
                     'max_depth' = max_depth_opt,
                     'learn_rate' = learn_rate_opt)
 
+if(F) {
 grid_search = h2o.grid(algorithm = "gbm",
                        grid_id = "gbm_grid",
                        hyper_params = hyper_params,
@@ -127,7 +128,7 @@ if (distribution == "gaussian") {
 # Error -- water.DException$DistributedException: from /127.0.0.1:54321; by class hex.ModelBuilder$1; class water.DException$DistributedException: from /127.0.0.1:54321; by class hex.glm.GLMTask$GLMGaussianGradientTask; class java.lang.ArrayIndexOutOfBoundsException: 429
 #learner <- c("h2o.glm.wrapper", "h2o.randomForest.wrapper",
 #             "h2o.gbm.wrapper", "h2o.deeplearning.wrapper")
-
+}
 learner = c("h2o.randomForest.wrapper",
              "h2o.gbm.wrapper", "h2o.deeplearning.wrapper")
 metalearner = "h2o.glm.wrapper"
@@ -135,7 +136,7 @@ metalearner = "h2o.glm.wrapper"
 # TODO: convert this to fitting the models separately, so that we can try different stackers.
 fit_ens <- h2o.ensemble(x = x, y = y,  training_frame = train,
                     family = "AUTO",  learner = learner,
-                    metalearner = metalearner, cvControl = list(V = 5))
+                    metalearner = metalearner, cvControl = list(V = 5), balance_classes=T)
 # Review the results.
 fit_ens$metafit
 
