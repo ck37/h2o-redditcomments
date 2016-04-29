@@ -1,5 +1,8 @@
 import re
+from scipy.sparse import hstack
+
 from collections import Counter
+from itertools import imap
 
 from nltk import word_tokenize
 from nltk.stem import PorterStemmer
@@ -24,7 +27,7 @@ Returns sparse matrix
 def feature_matrix(comments):
     feats = (doc_term_matrix,
              raw_counts_matrix)
-    return scipy.sparse.hstack([f(comments) for f in feats])
+    return hstack([ f(comments) for f in feats ])
 
 
 ####################################################
@@ -54,7 +57,7 @@ def raw_counts_matrix(comments):
     counts = lambda s : Counter( re.findall(NOT_WORDS, s) )
 
     # Creates mapped-iterator to save memory
-    vecs = itertools.imap(counts, comments)
+    vecs = imap(counts, comments)
 
     return DictVectorizer().fit_transform(vecs)
 
