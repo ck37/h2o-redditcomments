@@ -17,3 +17,4 @@ hw3/figure
 *.sqlite
 model/
 *.swp
+__pycache__

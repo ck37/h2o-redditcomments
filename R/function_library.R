@@ -28,7 +28,7 @@ load_libraries = function() {
 featurize = function(raw_data, downsample_pct = 1,
       sparsity_ngrams = c(0.99, 0.99, 0.99), principal_components = 0, two_way = F,
       prune_training_features=T, remove_stopwords = T, stem = T, binarize = F,
-      include_bigrams = T, include_trigrams = T) {
+      include_bigrams = T, include_trigrams = F) {
   cat("Featurizing", prettyNum(nrow(raw_data), big.mark=","), "rows.\n")
 
   # Downsample the raw data if we want to speed up computation.

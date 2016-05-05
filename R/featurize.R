@@ -19,7 +19,9 @@ rm(db)
 # Create features; raw feature processing is especially slow and needs to be optimized.
 # NOTE: this returns a list, where $data contains the actual dataframe.
 ptm <- proc.time()
+#data_processed = featurize(raw_data, downsample_pct = 0.01)
 data_processed = featurize(raw_data, downsample_pct = 0.01)
+#data_processed = featurize(raw_data)
 proc.time() - ptm
 
 # Save our results.
